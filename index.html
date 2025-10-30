@@ -1,20 +1,93 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Goblin Miner 💎</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Goblin Miner — Pro</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </head>
 <body>
-  <div id="game-container">
-    <canvas id="gameCanvas"></canvas>
-    <div id="ui">
-      <h2>YM Token: <span id="ymBalance">0</span></h2>
-      <button id="mineBtn">⛏️ Đào Token</button>
-      <button id="upgradeBtn">🧪 Nâng cấp (Giá: <span id="upgradeCost">10</span>)</button>
+  <!-- top bar -->
+  <header class="topbar">
+    <div class="brand">Goblin Miner • <span class="muted">Forest Mine</span></div>
+    <div class="right-controls">
+      <button id="musicToggle" class="small-btn">Nhạc: ON</button>
+      <button id="telegramInfo" class="small-btn">Open in Telegram</button>
     </div>
-  </div>
+  </header>
+
+  <main class="wrap">
+    <section id="game-stage">
+      <div id="phaser-container"></div>
+    </section>
+
+    <aside class="panel">
+      <div class="stat">
+        <div class="label">YM Token</div>
+        <div class="value"><span id="ym">0</span></div>
+      </div>
+
+      <div class="stat">
+        <div class="label">USDT (in-game)</div>
+        <div class="value"><span id="usdt">0.000</span></div>
+      </div>
+
+      <div class="muted small">Rate: <span id="rate">0</span> YM/s</div>
+
+      <div class="actions">
+        <button id="claimBtn" class="primary">Claim YM (instant)</button>
+        <button id="convertBtn" class="secondary">Đổi YM → USDT</button>
+      </div>
+
+      <hr/>
+
+      <div class="upgrade-list">
+        <h4>Nâng cấp & Cuốc</h4>
+        <div class="upgrade" data-id="pick_c">
+          <div class="u-title">Cuốc Gỗ (C) — miễn phí</div>
+          <div class="u-desc">Base yield: 1$ = 1000 YM → 28 ngày to 1$</div>
+          <div class="u-action"><button class="buy">Sở hữu</button></div>
+        </div>
+
+        <div class="upgrade" data-id="pick_b">
+          <div class="u-title">Cuốc Sắt (B) — 10$ (sale 15%)</div>
+          <div class="u-desc">Thời hạn 28 ngày</div>
+          <div class="u-action"><button class="buy">Mua</button></div>
+        </div>
+
+        <div class="upgrade" data-id="pick_a">
+          <div class="u-title">Cuốc Vàng (A) — 30$</div>
+          <div class="u-desc">Thời hạn 28 ngày</div>
+          <div class="u-action"><button class="buy">Mua</button></div>
+        </div>
+      </div>
+
+      <hr/>
+
+      <div>
+        <h4>Rút tiền (admin duyệt)</h4>
+        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)" />
+        <select id="network">
+          <option>BNB Chain</option>
+          <option>TON</option>
+          <option>Polygon</option>
+        </select>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="withdrawReq" class="primary">Tạo yêu cầu rút</button>
+          <button id="showLog" class="secondary">Xem log</button>
+        </div>
+        <div id="withdrawLog" class="log"></div>
+      </div>
+
+      <div class="muted small" style="margin-top:12px">
+        Lưu ý: Đây là demo frontend. Nạp/ rút thực tế cần backend + smart contract. Telegram WebApp hỗ trợ: <span id="tgUser">Not in Telegram</span>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="footer muted">Demo • Goblin Miner Pro — Light Forest theme</footer>
 
   <script src="script.js"></script>
 </body>
