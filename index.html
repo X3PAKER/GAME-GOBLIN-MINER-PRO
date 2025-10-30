@@ -1,47 +1,45 @@
-<!doctype html>
-<html lang="vi">
-<head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Goblin Miner — Demo</title>
-  <link rel="stylesheet" href="style.css"/>
-</head>
-<body>
-  <div class="app">
-    <header><h1>Goblin Miner — Forest</h1></header>
-    <main>
-      <div id="canvasWrap">
-        <canvas id="gameCanvas"></canvas>
-      </div>
+const express = require('express');
+const bodyParser = require('body-parser');
+const cors = require('cors');
+const Database = require('better-sqlite3');
+const db = new Database('data.db');
 
-      <div class="controls">
-        <button id="mineBtn">⛏️ Đào (Click)</button>
-        <button id="convertBtn">Đổi YM → USDT</button>
-        <button id="withdrawCreateBtn">Tạo yêu cầu rút</button>
-      </div>
+db.prepare(`CREATE TABLE IF NOT EXISTS withdraws (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  wallet TEXT, network TEXT, amount REAL, status TEXT, pass TEXT, createdAt TEXT
+)`).run();
 
-      <div class="info">
-        <div>YM: <span id="ym">0</span></div>
-        <div>USDT (in-game): <span id="usdt">0.000</span></div>
-      </div>
+const app = express();
+app.use(cors()); app.use(bodyParser.json());
 
-      <div class="withdraw-form">
-        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)"/>
-        <select id="withdrawNetwork">
-          <option>BNB</option><option>TON</option><option>Polygon</option><option>Base</option>
-        </select>
-        <input id="withdrawPass" placeholder="Mật khẩu rút"/>
-      </div>
+// create withdraw
+app.post('/api/withdraw', (req, res)=>{
+  const { wallet, network, amount, pass } = req.body;
+  if(!wallet || !amount || !pass) return res.status(400).json({message:'Invalid'});
+  // optionally validate pass server-side (or accept as is)
+  const stmt = db.prepare('INSERT INTO withdraws (wallet, network, amount, status, pass, createdAt) VALUES (?,?,?,?,?,?)');
+  const info = stmt.run(wallet, network, amount, 'PENDING', pass, new Date().toISOString());
+  res.json({id: info.lastInsertRowid});
+});
 
-      <div class="admin">
-        <h3>Admin (danh sách lệnh rút)</h3>
-        <button id="refreshList">Lấy danh sách</button>
-        <div id="requests"></div>
-      </div>
-    </main>
-    <footer>Demo frontend • lưu trạng thái localStorage</footer>
-  </div>
+// list withdraws
+app.get('/api/withdraws', (req, res)=>{
+  const rows = db.prepare('SELECT id,wallet,network,amount,status,createdAt FROM withdraws ORDER BY id DESC').all();
+  res.json(rows);
+});
 
-<script src="script.js"></script>
-</body>
-</html>
+// admin mark as sent (call with admin auth in prod)
+app.post('/api/admin/mark/:id', (req,res)=>{
+  const id = req.params.id;
+  db.prepare('UPDATE withdraws SET status = ? WHERE id = ?').run('SENT', id);
+  res.json({ok:true});
+});
+
+// optional: get single
+app.get('/api/withdraw/:id', (req,res)=>{
+  const row = db.prepare('SELECT * FROM withdraws WHERE id=?').get(req.params.id);
+  res.json(row||{});
+});
+
+const port = process.env.PORT || 4000;
+app.listen(port, ()=>console.log('listening', port));
