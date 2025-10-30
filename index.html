@@ -1,94 +1,369 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Goblin Miner — Pro</title>
-  <link rel="stylesheet" href="style.css" />
-  <!-- Phaser 3 -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Goblin Miner — MiniApp</title>
+<style>
+  :root{
+    --bg:#f7fbff; --panel:#ffffff; --muted:#6b7280; --accent:#f59e0b; --accent2:#06b6d4;
+    --glass: rgba(255,255,255,0.8);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,#f8fdff,#edf8ff);color:#07203a;-webkit-font-smoothing:antialiased}
+  .app{max-width:980px;margin:0 auto;padding:8px;display:flex;flex-direction:column;min-height:100vh;gap:8px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:transparent}
+  .brand{font-weight:800;letter-spacing:0.2px}
+  .small{font-size:13px;color:var(--muted)}
+  .main{display:flex;gap:12px;align-items:flex-start}
+  .stage{flex:1;background:linear-gradient(180deg,#e6fbf4,#eef9ff);border-radius:12px;padding:10px;box-shadow:0 8px 30px rgba(2,6,23,0.06);min-height:540px;display:flex;flex-direction:column;align-items:center}
+  #phaser-container{width:100%;height:420px;border-radius:10px;overflow:hidden;position:relative;background:linear-gradient(180deg,#e8fff2,#e6f6ff)}
+  .panel{width:340px;background:var(--panel);border-radius:12px;padding:12px;box-shadow:0 6px 20px rgba(2,6,23,0.04)}
+  .stat{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .value{font-weight:700;font-size:18px}
+  .actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  button{border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+  .primary{background:linear-gradient(90deg,var(--accent),#fb923c);color:white}
+  .secondary{background:#eef2ff;color:#1e293b}
+  .muted{color:var(--muted)}
+  .upgrade{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:linear-gradient(180deg,#fff,#fbfbfb);margin-bottom:8px;border:1px solid #f1f5f9}
+  input,select{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px}
+  .log{max-height:140px;overflow:auto;padding:8px;background:#fbfeff;border-radius:8px;border:1px dashed #e6eef8;margin-top:8px}
+  footer{margin-top:12px;text-align:center;color:var(--muted);font-size:13px}
+  @media(max-width:980px){.main{flex-direction:column}.panel{width:100%}#phaser-container{height:360px}}
+</style>
+<!-- Phaser 3 -->
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.55.2/dist/phaser.min.js"></script>
 </head>
 <body>
-  <!-- top bar -->
-  <header class="topbar">
-    <div class="brand">Goblin Miner • <span class="muted">Forest Mine</span></div>
-    <div class="right-controls">
-      <button id="musicToggle" class="small-btn">Nhạc: ON</button>
-      <button id="telegramInfo" class="small-btn">Open in Telegram</button>
+<div class="app">
+  <div class="topbar">
+    <div class="brand">Goblin Miner — Light Forest</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button id="musicToggle" class="secondary small">Nhạc: ON</button>
+      <button id="tgOpen" class="secondary small">Open in Telegram</button>
     </div>
-  </header>
+  </div>
 
-  <main class="wrap">
-    <section id="game-stage">
+  <div class="main">
+    <div class="stage">
       <div id="phaser-container"></div>
-    </section>
-
-    <aside class="panel">
-      <div class="stat">
-        <div class="label">YM Token</div>
-        <div class="value"><span id="ym">0</span></div>
-      </div>
-
-      <div class="stat">
-        <div class="label">USDT (in-game)</div>
-        <div class="value"><span id="usdt">0.000</span></div>
-      </div>
-
-      <div class="muted small">Rate: <span id="rate">0</span> YM/s</div>
-
-      <div class="actions">
+      <div style="width:100%;display:flex;justify-content:center;margin-top:8px;gap:10px;flex-wrap:wrap">
         <button id="claimBtn" class="primary">Claim YM (instant)</button>
         <button id="convertBtn" class="secondary">Đổi YM → USDT</button>
+        <button id="boostBtn" class="secondary">Kích hoạt x2 (50 YM)</button>
       </div>
+    </div>
 
-      <hr/>
+    <aside class="panel">
+      <div class="stat"><div class="small">YM Token</div><div class="value" id="ym">0</div></div>
+      <div class="stat"><div class="small">USDT (in-game)</div><div class="value" id="usdt">0.000</div></div>
+      <div class="small muted">Tốc độ: <span id="rate">0</span> YM/s</div>
 
-      <div class="upgrade-list">
-        <h4>Nâng cấp & Cuốc</h4>
-        <div class="upgrade" data-id="pick_c">
-          <div class="u-title">Cuốc Gỗ (C) — miễn phí</div>
-          <div class="u-desc">Base yield: 1$ = 1000 YM → 28 ngày to 1$</div>
-          <div class="u-action"><button class="buy">Sở hữu</button></div>
-        </div>
-
-        <div class="upgrade" data-id="pick_b">
-          <div class="u-title">Cuốc Sắt (B) — 10$ (sale 15%)</div>
-          <div class="u-desc">Thời hạn 28 ngày</div>
-          <div class="u-action"><button class="buy">Mua</button></div>
-        </div>
-
-        <div class="upgrade" data-id="pick_a">
-          <div class="u-title">Cuốc Vàng (A) — 30$</div>
-          <div class="u-desc">Thời hạn 28 ngày</div>
-          <div class="u-action"><button class="buy">Mua</button></div>
-        </div>
-      </div>
-
-      <hr/>
+      <hr style="margin:8px 0"/>
 
       <div>
-        <h4>Rút tiền (admin duyệt)</h4>
-        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)" />
+        <h4 style="margin:6px 0">Nâng cấp & Cuốc</h4>
+        <div id="upgrades"></div>
+      </div>
+
+      <hr style="margin:8px 0"/>
+
+      <div>
+        <h4 style="margin:6px 0">Rút tiền (admin duyệt)</h4>
+        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)"/>
         <select id="network">
           <option>BNB Chain</option>
           <option>TON</option>
           <option>Polygon</option>
         </select>
+        <input id="withdrawPass" placeholder="Mật khẩu rút (tạo/nhập)" style="margin-top:6px"/>
         <div style="display:flex;gap:8px;margin-top:8px">
           <button id="withdrawReq" class="primary">Tạo yêu cầu rút</button>
-          <button id="showLog" class="secondary">Xem log</button>
+          <button id="setPass" class="secondary">Tạo/Đổi mật khẩu rút</button>
+        </div>
+        <div style="margin-top:6px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="small muted">Mạng rút:</div><div class="small muted" id="feeInfo">Phí rút: 0.8 USDT</div>
+          </div>
         </div>
         <div id="withdrawLog" class="log"></div>
       </div>
-
-      <div class="muted small" style="margin-top:12px">
-        Lưu ý: Đây là demo frontend. Nạp/ rút thực tế cần backend + smart contract. Telegram WebApp hỗ trợ: <span id="tgUser">Not in Telegram</span>
-      </div>
     </aside>
-  </main>
+  </div>
 
-  <footer class="footer muted">Demo • Goblin Miner Pro — Light Forest theme</footer>
+  <footer>
+    Demo frontend • Nạp/rút thực tế cần backend & blockchain. Telegram WebApp support available.
+  </footer>
+</div>
 
-  <script src="script.js"></script>
+<script>
+/* -------------------------
+   Goblin Miner MiniApp (Single-file)
+   - Save state in localStorage
+   - Phaser visuals: goblin, pickaxe, tokens
+   - YM accrual, claim, convert, withdraw request
+   - Upgrades (pickaxes) with purchase limits
+   - Daily claim cooldown and withdraw password
+-------------------------*/
+
+// CONFIG
+const CONFIG = {
+  YM_TO_USDT: 0.001,           // 1 YM = 0.001 USDT demo
+  WITHDRAW_FEE_USDT: 0.8,
+  BASE_RATE: 0.5,
+  PICK_DEFS: [
+    // id, name, price_usdt, duration_days, purchasable_limit (-1 unlimited), ym_per_day (derived)
+    {id:'pick_c', name:'Cuốc Gỗ (C)', price_usdt:0, duration:28, limit:1, ym_per_day: (1/28)*1000},
+    {id:'pick_b', name:'Cuốc Sắt (B)', price_usdt:10, duration:28, limit:2, ym_per_day: (1/28)*1000 * 1.5},
+    {id:'pick_a', name:'Cuốc Vàng (A)', price_usdt:30, duration:28, limit:2, ym_per_day: (1/28)*1000 * 2.5},
+    {id:'pick_s', name:'Cuốc Bạch Kim (S)', price_usdt:80, duration:28, limit:2, ym_per_day: (1/28)*1000 * 5},
+    {id:'pick_ur', name:'Cuốc Kim Cương (UR)', price_usdt:150, duration:30, limit:-1, ym_per_day: (1/30)*1000 * 12}
+  ],
+  CLAIM_INTERVAL: 24*3600 // seconds
+};
+
+// STATE saved to localStorage
+let state = {
+  ym: 0,
+  usdt: 0,
+  rate: CONFIG.BASE_RATE,
+  multiplier: 1,
+  picks: {},    // pick_id: array of { boughtAt, expiresAt }
+  lastClaimAt: 0,
+  withdrawPass: null,
+  withdrawLog: []
+};
+
+// STORAGE
+function loadState(){
+  const raw = localStorage.getItem('goblin_state_v1');
+  if(raw){
+    try{ const s = JSON.parse(raw); Object.assign(state, s); }catch(e){}
+  }
+  // ensure picks exist
+  CONFIG.PICK_DEFS.forEach(p=>{ if(!Array.isArray(state.picks[p.id])) state.picks[p.id]=[]; });
+}
+function saveState(){ localStorage.setItem('goblin_state_v1', JSON.stringify(state)); }
+
+// UI refs
+const ymEl = ()=>document.getElementById('ym');
+const usdtEl = ()=>document.getElementById('usdt');
+const rateEl = ()=>document.getElementById('rate');
+const withdrawLogEl = ()=>document.getElementById('withdrawLog');
+const upgradesEl = ()=>document.getElementById('upgrades');
+
+// Recalc rate from active picks
+function recalcRate(){
+  let extra = 0;
+  CONFIG.PICK_DEFS.forEach(p=>{
+    const list = state.picks[p.id] || [];
+    list.forEach(inst=>{
+      if(Date.now() < inst.expiresAt) extra += p.ym_per_day/86400; // per second
+    });
+  });
+  state.rate = CONFIG.BASE_RATE + extra;
+}
+
+// Render upgrades UI
+function renderUpgrades(){
+  const container = upgradesEl();
+  container.innerHTML = '';
+  CONFIG.PICK_DEFS.forEach(def=>{
+    const div = document.createElement('div'); div.className='upgrade';
+    const owned = (state.picks[def.id]||[]).filter(i=>Date.now()<i.expiresAt).length;
+    const left = def.limit==-1 ? '∞' : Math.max(0, def.limit - owned);
+    div.innerHTML = `<div>
+      <div style="font-weight:700">${def.name}</div>
+      <div class="muted small">${def.price_usdt>0 ? def.price_usdt+'$' : 'Miễn phí'} • Thời hạn ${def.duration} ngày • Sở hữu: ${owned}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="muted small">Còn: ${left}</div>
+        <div style="margin-top:6px"><button class="buyBtn">${def.price_usdt>0 ? 'Mua' : 'Sở hữu'}</button></div>
+      </div>`;
+    div.querySelector('.buyBtn').addEventListener('click', ()=>buyPick(def.id));
+    container.appendChild(div);
+  });
+}
+
+// Buy pick logic
+function buyPick(id){
+  const def = CONFIG.PICK_DEFS.find(p=>p.id===id);
+  if(!def) return;
+  const owned = (state.picks[id]||[]).filter(i=>Date.now()<i.expiresAt).length;
+  if(def.limit!=-1 && owned>=def.limit){ return alert('Bạn đã đạt giới hạn mua cho gói này'); }
+  if(def.price_usdt>0){
+    if(state.usdt < def.price_usdt) return alert('Không đủ USDT (đổi YM → USDT trước)');
+    state.usdt -= def.price_usdt;
+  }
+  const now = Date.now();
+  const expiresAt = now + def.duration * 24*3600*1000;
+  state.picks[id].push({ boughtAt: now, expiresAt });
+  recalcRate(); saveState(); updateUI(); renderUpgrades();
+  alert('Mua thành công: ' + def.name);
+}
+
+// Update UI
+function updateUI(){
+  ymEl().innerText = Math.floor(state.ym);
+  usdtEl().innerText = state.usdt.toFixed(3);
+  rateEl().innerText = (state.rate*state.multiplier).toFixed(3);
+  withdrawLogEl().innerHTML = state.withdrawLog.map(l=>`<div>• ${l.t} — ${l.text}</div>`).join('');
+}
+
+// Convert YM->USDT (in-game)
+document.getElementById('convertBtn').addEventListener('click', ()=>{
+  const ym = Math.floor(state.ym);
+  if(ym <= 0) return alert('Không có YM để đổi');
+  const usdt = ym * CONFIG.YM_TO_USDT;
+  state.ym -= ym;
+  state.usdt += usdt;
+  saveState(); updateUI();
+  alert(`Đã đổi ${ym} YM → ${usdt.toFixed(3)} USDT (in-game).`);
+});
+
+// Claim (demo)
+document.getElementById('claimBtn').addEventListener('click', ()=>{
+  alert(`Claim (demo): bạn có ${Math.floor(state.ym)} YM trong ví.`);
+});
+
+// Boost purchase & use
+document.getElementById('boostBtn').addEventListener('click', ()=>{
+  if(state.ym < 50) return alert('Cần 50 YM để kích hoạt boost x2 trong 30s');
+  state.ym -= 50; state.multiplier = 2; updateUI(); saveState();
+  setTimeout(()=>{ state.multiplier = 1; updateUI(); saveState(); alert('Boost kết thúc'); }, 30000);
+});
+
+// Withdraw password set/change
+document.getElementById('setPass').addEventListener('click', ()=>{
+  const pass = document.getElementById('withdrawPass').value.trim();
+  if(!pass) return alert('Nhập mật khẩu rút mới vào ô trên');
+  state.withdrawPass = pass;
+  saveState();
+  alert('Đã tạo / đổi mật khẩu rút thành công');
+});
+
+// Create withdraw request (admin will process)
+document.getElementById('withdrawReq').addEventListener('click', ()=>{
+  const addr = document.getElementById('withdrawAddress').value.trim();
+  const network = document.getElementById('network').value;
+  const pass = document.getElementById('withdrawPass').value.trim();
+  if(!addr) return alert('Nhập địa chỉ rút');
+  if(!state.withdrawPass) return alert('Bạn chưa tạo mật khẩu rút. Bấm "Tạo/Đổi mật khẩu rút" trước');
+  if(pass !== state.withdrawPass) return alert('Mật khẩu rút sai');
+  if(state.usdt <= 0) return alert('Không có USDT trong tài khoản');
+  const amount = state.usdt;
+  state.usdt = 0;
+  const afterFee = Math.max(0, amount - CONFIG.WITHDRAW_FEE_USDT);
+  const text = `Rút ${amount.toFixed(3)} → ${addr} (${network}) • Sau phí: ${afterFee.toFixed(3)} USDT • TRẠNG: PENDING`;
+  state.withdrawLog.unshift({ t: new Date().toLocaleString(), text });
+  saveState(); updateUI();
+  alert('Đã tạo yêu cầu rút. Admin sẽ duyệt thủ công.');
+});
+
+// TG open info
+document.getElementById('tgOpen').addEventListener('click', ()=>{
+  alert('Để mở trong Telegram: gắn URL này vào BotFather → Menu Button → Web App URL');
+});
+
+// Music (simple synth)
+let audioCtx=null, osc=null; let musicOn=true;
+function startMusic(){ try{
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(osc) return; osc = audioCtx.createOscillator(); const g = audioCtx.createGain(); g.gain.value = 0.02; osc.connect(g); g.connect(audioCtx.destination); osc.type='sine'; osc.frequency.value=220; osc.start();
+}catch(e){}}
+function stopMusic(){ try{ if(osc){osc.stop(); osc=null;} }catch(e){}}
+document.getElementById('musicToggle').addEventListener('click', ()=>{
+  musicOn = !musicOn; document.getElementById('musicToggle').innerText = 'Nhạc: ' + (musicOn?'ON':'OFF'); if(musicOn) startMusic(); else stopMusic();
+});
+if(musicOn) startMusic();
+
+// Init state & UI
+loadState(); recalcRate(); renderUpgrades(); updateUI();
+
+// Phaser visuals + accrual
+const phaserConfig = {
+  type: Phaser.AUTO,
+  parent: 'phaser-container',
+  width: '100%',
+  scale:{ mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH },
+  backgroundColor: 0xe6f9ff,
+  scene: { preload, create, update }
+};
+const game = new Phaser.Game(phaserConfig);
+
+function preload(){}
+function create(){
+  const scene = this;
+  // background gradient
+  const g = scene.add.graphics(); g.fillStyle(0xdfefff,1); g.fillRect(0,0,920,560);
+  // trees / hills
+  for(let i=0;i<6;i++){
+    const x = 80 + i*140; const y = 320;
+    scene.add.triangle(x,y,0,160,80,20,160,160,0x9fe6b8).setAlpha(0.95);
+  }
+  // ground
+  scene.add.rectangle(460,500,920,120,0x6bd19b).setDepth(0);
+
+  // procedural goblin texture
+  const tex = scene.textures.createCanvas('gob',64,64); const ctx = tex.getContext();
+  ctx.fillStyle = '#9be6a8'; ctx.beginPath(); ctx.ellipse(32,36,22,18,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#6b4e3a'; ctx.fillRect(10,6,44,18); ctx.fillStyle='#fff'; ctx.fillRect(16,10,32,6);
+  ctx.fillStyle='#f4a0a0'; ctx.beginPath(); ctx.ellipse(32,36,6,4,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1f2937'; ctx.fillRect(24,30,4,4); ctx.fillRect(36,30,4,4);
+  tex.refresh();
+
+  // pick texture
+  const ptex = scene.textures.createCanvas('pick',40,40); const pc = ptex.getContext();
+  pc.fillStyle='#6b4e3a'; pc.fillRect(14,0,6,28); pc.fillStyle='#c9c9c9'; pc.fillRect(4,4,20,6);
+  ptex.refresh();
+
+  // token
+  const ttex = scene.textures.createCanvas('token',14,14); const tc = ttex.getContext();
+  tc.fillStyle='#ffd166'; tc.beginPath(); tc.arc(7,7,6,0,Math.PI*2); tc.fill();
+  ttex.refresh();
+
+  // goblin sprite & pick
+  const gob = scene.add.sprite(300,380,'gob').setScale(3).setDepth(2);
+  const pick = scene.add.image(336,340,'pick').setScale(1.6).setDepth(3);
+  scene.tweens.add({ targets:gob, y:gob.y-8, duration:900, yoyo:true, repeat:-1, ease:'Sine.easeInOut' });
+  scene.tweens.add({ targets:pick, angle:{from:-30,to:30}, duration:700, yoyo:true, repeat:-1, ease:'Sine.easeInOut' });
+
+  // particles emitter for tokens
+  const particles = scene.add.particles('token');
+  const emitter = particles.createEmitter({ x:gob.x, y:gob.y-40, lifespan:1000, speedY:{min:-120,max:-220}, speedX:{min:-40,max:40}, gravityY:300, quantity:0 });
+
+  // click to mine manual
+  gob.setInteractive();
+  gob.on('pointerdown', ()=>{
+    emitter.explode(8, gob.x + Phaser.Math.Between(-20,20), gob.y-30);
+    state.ym += 1 * state.multiplier; saveState(); updateUI();
+    scene.tweens.add({ targets: pick, angle:-70, duration:120, yoyo:true });
+    if(musicOn && audioCtx){
+      const s = audioCtx.createOscillator(), g = audioCtx.createGain();
+      s.type='square'; s.frequency.value=900; g.gain.value=0.02;
+      s.connect(g); g.connect(audioCtx.destination); s.start(); setTimeout(()=>{ s.stop(); },80);
+    }
+  });
+
+  // automated accrual every second
+  scene.time.addEvent({ delay:1000, loop:true, callback: ()=>{
+    const gain = state.rate * state.multiplier;
+    state.ym += gain; saveState();
+    const cnt = Math.min(12, Math.round(gain*2));
+    if(cnt>0) emitter.explode(cnt, gob.x + Phaser.Math.Between(-40,40), gob.y-30);
+    recalcRate(); updateUI();
+  }});
+
+  // store refs
+  scene.gob = gob; scene.pick = pick; scene.emitter = emitter;
+}
+
+function update(){ /* optional HUD */ }
+
+// Save before unload
+window.addEventListener('beforeunload', ()=> saveState());
+
+// End of script
+</script>
 </body>
 </html>
