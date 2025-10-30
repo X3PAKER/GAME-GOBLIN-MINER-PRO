@@ -8,14 +8,23 @@
 </head>
 <body>
   <div class="game-container">
-    <h2>Goblin Miner — Forest</h2>
-    <canvas id="gameCanvas"></canvas>
-    <div class="controls">
-      <button id="mineBtn">⛏️ Đào Token</button>
-      <button id="claimBtn">💰 Claim YM</button>
+    <h1>Goblin Miner — Forest</h1>
+
+    <div class="mine-area" id="mine-area">
+      <img src="pickaxe.png" class="pickaxe" id="pickaxe" />
+      <img src="coin.png" class="coin hidden" id="coin" />
     </div>
-    <h3>YM Token: <span id="ymBalance">0</span></h3>
+
+    <div class="buttons">
+      <button id="mineBtn">⛏️ Đào Token</button>
+      <button id="claimBtn">🔥 Claim YM</button>
+    </div>
+
+    <div class="token-display">
+      YM Token: <span id="tokenCount">0</span>
+    </div>
   </div>
+
   <script src="script.js"></script>
 </body>
 </html>
