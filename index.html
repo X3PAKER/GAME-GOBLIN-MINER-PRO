@@ -1,36 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Goblin Miner — Forest</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Goblin Miner — Demo</title>
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-  <div class="game-container">
-    <h1>Goblin Miner — Forest</h1>
+  <div class="app">
+    <header><h1>Goblin Miner — Forest</h1></header>
+    <main>
+      <div id="canvasWrap">
+        <canvas id="gameCanvas"></canvas>
+      </div>
 
-   <div class="mine-area" id="mine-area">
-    <img src="a6023a59-0a13-421c-a96b-2f2c52dae143.png" class="coin" id="coin" />
-    <img src="https://raw.githubusercontent.com/X3PAKER/GAME-GOBLIN-MINER-PRO/main/a6023a59-0a13-421c-a96b-2f2c52dae143.png" alt="YM Token Background" class="background">
-<script src="script.js"></script>
+      <div class="controls">
+        <button id="mineBtn">⛏️ Đào (Click)</button>
+        <button id="convertBtn">Đổi YM → USDT</button>
+        <button id="withdrawCreateBtn">Tạo yêu cầu rút</button>
+      </div>
 
-    </div>
+      <div class="info">
+        <div>YM: <span id="ym">0</span></div>
+        <div>USDT (in-game): <span id="usdt">0.000</span></div>
+      </div>
 
-    <div class="buttons">
-      <button id="mineBtn">⛏️ Đào Token</button>
-      <button id="claimBtn">🔥 Claim YM</button>
-    </div>
+      <div class="withdraw-form">
+        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)"/>
+        <select id="withdrawNetwork">
+          <option>BNB</option><option>TON</option><option>Polygon</option><option>Base</option>
+        </select>
+        <input id="withdrawPass" placeholder="Mật khẩu rút"/>
+      </div>
 
-    <div class="token-display">
-      YM Token: <span id="tokenCount">0</span>
-    </div>
+      <div class="admin">
+        <h3>Admin (danh sách lệnh rút)</h3>
+        <button id="refreshList">Lấy danh sách</button>
+        <div id="requests"></div>
+      </div>
+    </main>
+    <footer>Demo frontend • lưu trạng thái localStorage</footer>
   </div>
 
-  <script src="script.js"></script>
+<script src="script.js"></script>
 </body>
 </html>
-
-
-
-
