@@ -1,78 +1,21 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>Goblin Miner — Forest</title>
-<link rel="stylesheet" href="style.css" />
-<!-- Phaser is optional; this build uses plain Canvas + lightweight engine code (no external libs) -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Goblin Miner — Forest</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div id="app">
-    <header class="topbar">
-      <div class="logo">Goblin Miner — Forest</div>
-      <div class="controls">
-        <button id="musicToggle" class="btn small">Nhạc: ON</button>
-        <button id="openInfo" class="btn small">Mở trong Telegram</button>
-      </div>
-    </header>
-
-    <main class="wrap">
-      <section class="stage">
-        <canvas id="canvas"></canvas>
-
-        <div class="stage-controls">
-          <button id="mineBtn" class="btn primary">⛏️ Đào (Click)</button>
-          <button id="boostBtn" class="btn secondary">Kích hoạt x2 (50 YM)</button>
-          <button id="claimBtn" class="btn secondary">Claim (hàng ngày)</button>
-        </div>
-      </section>
-
-      <aside class="panel">
-        <div class="stat">
-          <div class="label">YM Token</div>
-          <div class="value" id="ym">0</div>
-        </div>
-        <div class="stat">
-          <div class="label">USDT (in-game)</div>
-          <div class="value" id="usdt">0.000</div>
-        </div>
-        <div class="stat small muted">Tốc độ: <span id="rate">0</span> YM/s</div>
-
-        <hr/>
-
-        <div>
-          <h4>Nâng cấp & Cuốc</h4>
-          <div id="upgrades"></div>
-        </div>
-
-        <hr/>
-
-        <div>
-          <h4>Rút tiền (admin duyệt)</h4>
-          <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)" />
-          <select id="network">
-            <option>BNB Chain</option>
-            <option>TON</option>
-            <option>Polygon</option>
-          </select>
-          <input id="withdrawPass" placeholder="Mật khẩu rút (tạo/nhập)"/>
-          <div style="display:flex;gap:8px;margin-top:8px">
-            <button id="withdrawReq" class="btn primary">Tạo yêu cầu rút</button>
-            <button id="setPass" class="btn secondary">Tạo/Đổi mật khẩu rút</button>
-          </div>
-          <div id="withdrawLog" class="log"></div>
-        </div>
-
-        <div class="muted small" style="margin-top:10px">
-          Lưu ý: front-end demo. Nạp/rút thực tế cần backend + blockchain.
-        </div>
-      </aside>
-    </main>
-
-    <footer class="footer">Mini App • Goblin Miner — Light Forest</footer>
+  <div class="game-container">
+    <h2>Goblin Miner — Forest</h2>
+    <canvas id="gameCanvas"></canvas>
+    <div class="controls">
+      <button id="mineBtn">⛏️ Đào Token</button>
+      <button id="claimBtn">💰 Claim YM</button>
+    </div>
+    <h3>YM Token: <span id="ymBalance">0</span></h3>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
