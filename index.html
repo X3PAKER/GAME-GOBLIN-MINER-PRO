@@ -1,45 +1,309 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const Database = require('better-sqlite3');
-const db = new Database('data.db');
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Goblin Miner — MiniApp</title>
+<style>
+/* ===== style.css embedded (light forest GameFi) ===== */
+:root{
+  --bg1:#ecfff1; --bg2:#e8f9ff; --muted:#6b7280; --accent:#16a085; --accent2:#f59e0b;
+  --card:#fff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial;background:linear-gradient(180deg,var(--bg1),var(--bg2));color:#052e2d}
+.app{max-width:1100px;margin:8px auto;padding:8px;display:flex;flex-direction:column;gap:8px}
+.topbar{display:flex;justify-content:space-between;align-items:center;padding:8px 12px}
+.brand{font-weight:800}
+.main{display:flex;gap:12px;align-items:flex-start}
+.stage{flex:1;background:linear-gradient(180deg,#e9fff5,#eef9ff);border-radius:12px;padding:14px;box-shadow:0 10px 30px rgba(2,6,23,0.06);min-height:620px;display:flex;flex-direction:column;align-items:center}
+.canvas-wrap{width:100%;height:460px;border-radius:10px;overflow:hidden;background:linear-gradient(180deg,#cfeee1,#e6f6ff);display:flex;align-items:center;justify-content:center;position:relative}
+.panel{width:360px;background:var(--card);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,0.04)}
+.stat{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.label{color:var(--muted)}
+.value{font-weight:800;font-size:18px}
+.small{font-size:13px}
+.muted{color:var(--muted)}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+button{border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:700}
+.primary{background:linear-gradient(90deg,var(--accent),#06b6d4);color:#fff}
+.secondary{background:#eef2ff;color:#1e293b}
+.upgrade{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfbfb);margin-bottom:10px;border:1px solid #eef6f2}
+input,select{width:100%;padding:8px;border-radius:8px;border:1px solid #e6eef8;margin-top:6px}
+.log{max-height:180px;overflow:auto;padding:8px;background:#fbfeff;border-radius:8px;border:1px dashed #e6eef8;margin-top:8px}
+.footer{text-align:center;color:var(--muted);padding:10px}
 
-db.prepare(`CREATE TABLE IF NOT EXISTS withdraws (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  wallet TEXT, network TEXT, amount REAL, status TEXT, pass TEXT, createdAt TEXT
-)`).run();
+/* canvas elements (goblin/pick/particles) */
+.token-float{position:absolute;font-weight:800;color:#ffd166;text-shadow:0 2px 6px rgba(0,0,0,0.2);pointer-events:none}
+.pick-anim{position:absolute;pointer-events:none;transform-origin:center}
+@media(max-width:980px){.main{flex-direction:column}.panel{width:100%}.canvas-wrap{height:360px}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">Goblin Miner • Forest</div>
+    <div>
+      <button id="musicToggle" class="secondary small">Nhạc: ON</button>
+    </div>
+  </header>
 
-const app = express();
-app.use(cors()); app.use(bodyParser.json());
+  <div class="main">
+    <section class="stage">
+      <div class="canvas-wrap" id="canvasWrap">
+        <!-- canvas area; we will draw goblin & particles with JS -->
+        <canvas id="gameCanvas" style="width:100%;height:100%"></canvas>
+        <!-- floating token container -->
+        <div id="floatContainer" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"></div>
+        <!-- pick image holder (use uploaded asset name: pickaxe.png) -->
+        <img id="pickImg" class="pick-anim" src="pickaxe.png" style="width:120px;left:60%;top:58%;display:none"/>
+      </div>
 
-// create withdraw
-app.post('/api/withdraw', (req, res)=>{
-  const { wallet, network, amount, pass } = req.body;
-  if(!wallet || !amount || !pass) return res.status(400).json({message:'Invalid'});
-  // optionally validate pass server-side (or accept as is)
-  const stmt = db.prepare('INSERT INTO withdraws (wallet, network, amount, status, pass, createdAt) VALUES (?,?,?,?,?,?)');
-  const info = stmt.run(wallet, network, amount, 'PENDING', pass, new Date().toISOString());
-  res.json({id: info.lastInsertRowid});
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button id="mineBtn" class="primary">⛏️ Đào (Click)</button>
+        <button id="boostBtn" class="secondary">Kích hoạt x2 (50 YM)</button>
+        <button id="claimBtn" class="secondary">Claim (24h)</button>
+      </div>
+    </section>
+
+    <aside class="panel">
+      <div class="stat"><div class="label">YM Token</div><div class="value" id="ym">0</div></div>
+      <div class="stat"><div class="label">USDT (in-game)</div><div class="value" id="usdt">0.000</div></div>
+      <div class="small muted">Tốc độ: <span id="rate">0</span> YM/s</div>
+      <div class="actions" style="margin-top:8px">
+        <button id="convertBtn" class="primary">Đổi YM → USDT</button>
+      </div>
+
+      <hr style="margin:8px 0"/>
+      <div>
+        <h4>Nâng cấp & Cuốc</h4>
+        <div id="upgrades"></div>
+      </div>
+
+      <hr style="margin:8px 0"/>
+      <div>
+        <h4>Rút tiền (admin duyệt)</h4>
+        <input id="withdrawAddress" placeholder="Địa chỉ rút (BNB/Ton/Polygon)" />
+        <select id="network"><option>BNB Chain</option><option>TON</option><option>Polygon</option><option>Base</option></select>
+        <input id="withdrawPass" placeholder="Mật khẩu rút (tạo/nhập)"/>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button id="withdrawReq" class="primary">Tạo yêu cầu rút</button>
+          <button id="setPass" class="secondary">Tạo/Đổi mật khẩu rút</button>
+        </div>
+        <div id="withdrawLog" class="log"></div>
+      </div>
+
+      <hr style="margin:8px 0"/>
+      <div>
+        <h4>Referrals</h4>
+        <div class="small muted">Link mời: <input id="refLink" style="width:100%;padding:6px" readonly /></div>
+        <div class="muted small" style="margin-top:6px">Hoa hồng: F0 10% • F1 2% • F2 2% • F3 1%</div>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="footer">Demo • Frontend only. Nạp/rút thực tế cần backend & blockchain.</footer>
+</div>
+
+<!-- ========== JS ========== -->
+<script>
+/* ========= CONFIG ========= */
+const API_BASE = "<PUT_YOUR_BACKEND_URL_HERE>"; // EX: https://your-backend.onrender.com
+const YM_TO_USDT = 0.001;
+const WITHDRAW_FEE = 0.8;
+const BASE_RATE = 0.5; // YM/s baseline
+const PICK_DEFS = [
+  {id:'pick_c', name:'Cuốc Gỗ (C)', price:0, days:28, limit:1, factor:1},
+  {id:'pick_b', name:'Cuốc Sắt (B)', price:10, days:28, limit:2, factor:1.5},
+  {id:'pick_a', name:'Cuốc Vàng (A)', price:30, days:28, limit:2, factor:2.5},
+  {id:'pick_s', name:'Cuốc Bạch Kim (S)', price:80, days:28, limit:2, factor:5},
+  {id:'pick_ur', name:'Cuốc Kim Cương (UR)', price:150, days:30, limit:-1, factor:12}
+];
+
+/* ========= STATE ========= */
+let state = {
+  ym: 0,
+  usdt: 0,
+  rate: BASE_RATE,
+  multiplier: 1,
+  picks: {}, // id -> [{boughtAt, expiresAt}]
+  lastClaimAt: 0,
+  withdrawPass: null,
+  withdrawLog: [],
+  referrals: { f0: null } // store invite code
+};
+
+/* ======= utils storage ======= */
+const STORAGE_KEY = 'goblin_miner_v1';
+function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(raw) try{ Object.assign(state, JSON.parse(raw)); }catch(e){}
+  PICK_DEFS.forEach(p=>{ if(!Array.isArray(state.picks[p.id])) state.picks[p.id]=[]; });
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+
+/* ===== UI refs ===== */
+const ymEl = ()=>document.getElementById('ym');
+const usdtEl = ()=>document.getElementById('usdt');
+const rateEl = ()=>document.getElementById('rate');
+const upgradesEl = ()=>document.getElementById('upgrades');
+const withdrawLogEl = ()=>document.getElementById('withdrawLog');
+const floatContainer = document.getElementById('floatContainer');
+const pickImg = document.getElementById('pickImg');
+
+/* ===== recalc mining rate from picks ===== */
+function recalcRate(){
+  let extra = 0;
+  PICK_DEFS.forEach(p=>{
+    const arr = state.picks[p.id] || [];
+    arr.forEach(inst => { if(Date.now() < inst.expiresAt) extra += (1000/p.days * p.factor)/86400; });
+  });
+  state.rate = BASE_RATE + extra;
+}
+
+/* ===== render upgrades ===== */
+function renderUpgrades(){
+  upgradesEl().innerHTML = '';
+  PICK_DEFS.forEach(def=>{
+    const owned = (state.picks[def.id]||[]).filter(i=>Date.now()<i.expiresAt).length;
+    const left = def.limit === -1 ? '∞' : Math.max(0, def.limit - owned);
+    const div = document.createElement('div'); div.className='upgrade';
+    div.innerHTML = `<div>
+      <div style="font-weight:700">${def.name}</div>
+      <div class="muted small">${def.price>0?def.price+'$':'Miễn phí'} • ${def.days} ngày • Sở hữu: ${owned}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="muted small">Còn: ${left}</div>
+        <div style="margin-top:6px"><button class="btn small buy">${def.price>0?'Mua':'Sở hữu'}</button></div>
+      </div>`;
+    div.querySelector('.buy').addEventListener('click', ()=>buyPick(def.id));
+    upgradesEl().appendChild(div);
+  });
+}
+
+/* ===== buy pick ===== */
+function buyPick(id){
+  const def = PICK_DEFS.find(p=>p.id===id);
+  const owned = (state.picks[id]||[]).filter(i=>Date.now()<i.expiresAt).length;
+  if(def.limit !== -1 && owned >= def.limit) return alert('Đã đạt giới hạn gói này');
+  if(def.price > 0){
+    if(state.usdt < def.price) return alert('Không đủ USDT (Đổi YM→USDT trước)');
+    state.usdt -= def.price;
+  }
+  const now = Date.now(); const expiresAt = now + def.days*24*3600*1000;
+  state.picks[id].push({ boughtAt: now, expiresAt });
+  recalcRate(); saveState(); updateUI(); renderUpgrades();
+  alert('Mua thành công: ' + def.name);
+}
+
+/* ===== UI update ===== */
+function updateUI(){
+  ymEl().innerText = Math.floor(state.ym);
+  usdtEl().innerText = state.usdt.toFixed(3);
+  rateEl().innerText = (state.rate * state.multiplier).toFixed(3);
+  withdrawLogEl().innerHTML = state.withdrawLog.map(l=>`<div>• ${l.t} — ${l.text}</div>`).join('');
+}
+
+/* ===== floating token visual ===== */
+function spawnFloating(text, x=50, y=50){
+  const d = document.createElement('div'); d.className='token-float';
+  d.style.left = x + '%'; d.style.top = y + '%'; d.innerText = text;
+  floatContainer.appendChild(d);
+  d.animate([{transform:'translateY(0)', opacity:1},{transform:'translateY(-120px)', opacity:0}], {duration:900, easing:'cubic-bezier(.2,.9,.2,1)'});
+  setTimeout(()=> d.remove(), 950);
+}
+
+/* ===== mining actions ===== */
+document.getElementById('mineBtn').addEventListener('click', ()=> {
+  // animate pick
+  pickImg.style.display = 'block';
+  pickImg.style.transition = 'transform 0.14s';
+  pickImg.style.transform = 'translate(-50%,-50%) rotate(-70deg) scale(1.02)';
+  setTimeout(()=> { pickImg.style.transform = 'translate(-50%,-50%) rotate(-22deg) scale(1)'; }, 160);
+
+  // spawn tokens visually
+  for(let i=0;i<8;i++){
+    const rx = 40 + Math.random()*30; const ry = 45 + Math.random()*15;
+    spawnFloating('+1 YM', rx, ry);
+  }
+  state.ym += 1 * state.multiplier;
+  saveState(); updateUI();
 });
 
-// list withdraws
-app.get('/api/withdraws', (req, res)=>{
-  const rows = db.prepare('SELECT id,wallet,network,amount,status,createdAt FROM withdraws ORDER BY id DESC').all();
-  res.json(rows);
+/* auto accrual per second */
+setInterval(()=>{
+  state.ym += state.rate * state.multiplier;
+  saveState(); updateUI();
+}, 1000);
+
+/* ===== convert YM -> USDT (in-game) ===== */
+document.getElementById('convertBtn').addEventListener('click', ()=> {
+  const ym = Math.floor(state.ym);
+  if(ym <= 0) return alert('Không có YM để đổi');
+  const usdt = ym * YM_TO_USDT;
+  state.ym -= ym; state.usdt += usdt; saveState(); updateUI();
+  alert(`Đã đổi ${ym} YM → ${usdt.toFixed(3)} USDT (in-game).`);
 });
 
-// admin mark as sent (call with admin auth in prod)
-app.post('/api/admin/mark/:id', (req,res)=>{
-  const id = req.params.id;
-  db.prepare('UPDATE withdraws SET status = ? WHERE id = ?').run('SENT', id);
-  res.json({ok:true});
+/* ===== withdraw password set ===== */
+document.getElementById('setPass').addEventListener('click', ()=>{
+  const pass = document.getElementById('withdrawPass').value.trim();
+  if(!pass) return alert('Nhập mật khẩu rút');
+  state.withdrawPass = pass; saveState(); alert('Mật khẩu rút đã tạo/đổi');
 });
 
-// optional: get single
-app.get('/api/withdraw/:id', (req,res)=>{
-  const row = db.prepare('SELECT * FROM withdraws WHERE id=?').get(req.params.id);
-  res.json(row||{});
+/* ===== create withdraw request (sends to backend) ===== */
+document.getElementById('withdrawReq').addEventListener('click', async ()=>{
+  const addr = document.getElementById('withdrawAddress').value.trim();
+  const net = document.getElementById('network').value;
+  const pass = document.getElementById('withdrawPass').value.trim();
+  if(!addr) return alert('Nhập địa chỉ rút');
+  if(!state.withdrawPass) return alert('Bạn chưa tạo mật khẩu rút');
+  if(pass !== state.withdrawPass) return alert('Mật khẩu rút sai');
+  if(state.usdt <= 0) return alert('Không có USDT trong tài khoản');
+
+  // Build request body — backend records and handles referral distribution
+  const body = { wallet: addr, network: net, amount: state.usdt, user: getLocalUserId(), referral: state.referrals, note: 'withdraw request' };
+  try{
+    const res = await fetch(API_BASE + '/api/withdraw', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(body) });
+    const j = await res.json();
+    if(res.ok){ state.withdrawLog.unshift({t: new Date().toLocaleString(), text: `Rút ${j.amount} → ${addr} (${net}) PENDING`}); state.usdt = 0; saveState(); updateUI(); alert('Tạo yêu cầu rút thành công'); }
+    else alert('Lỗi tạo rút: ' + (j.message||res.statusText));
+  }catch(e){ alert('Lỗi kết nối backend: ' + e.message); }
 });
 
-const port = process.env.PORT || 4000;
-app.listen(port, ()=>console.log('listening', port));
+/* ===== getLocalUserId / referral handling ===== */
+function getLocalUserId(){
+  // demo user id stored in localStorage; in Telegram WebApp you would use tg.initDataUnsafe.user.id
+  let uid = localStorage.getItem('gm_user_id');
+  if(!uid){ uid = 'u' + Math.floor(Math.random()*1e9); localStorage.setItem('gm_user_id', uid); }
+  return uid;
+}
+
+/* ===== Admin fetch withdraws (display) ===== */
+async function fetchWithdraws(){
+  try{
+    const res = await fetch(API_BASE + '/api/withdraws');
+    const json = await res.json();
+    const out = json.map(w=>`<div style="padding:8px;border-bottom:1px solid #fafafa"><b>#${w.id}</b> ${w.amount} USDT → ${w.wallet} (${w.network})<br>${w.status} • ${w.createdAt}<br><small>${w.note||''}</small></div>`).join('');
+    withdrawLogEl().innerHTML = out;
+  }catch(e){ withdrawLogEl().innerText = 'Không thể lấy danh sách'; }
+}
+document.getElementById('musicToggle').addEventListener('click', ()=>{
+  const btn = document.getElementById('musicToggle'); btn.innerText = btn.innerText.includes('ON') ? 'Nhạc: OFF' : 'Nhạc: ON';
+});
+
+/* ===== init ===== */
+loadState(); recalcRate(); renderUpgrades(); updateUI(); fetchWithdraws();
+
+/* ===== Anti-fraud suggestions (UI hints) ===== */
+// Not enforced; backend should verify:
+function fraudHint(){
+  // show simple rule set in console
+  console.log('Anti-fraud: detect same IP multiple accounts, impossible mining rates, rapid withdraws.');
+}
+fraudHint();
+
+</script>
+</body>
+</html>
